@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Lista de tareas{% endblock %}
+
+{% block content %}
+<section class="actions">
+    <a class="btn btn-primary" href="{{ url_for('nuevo') }}">+ Nueva tarea</a>
+</section>
+
+{% if tareas %}
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Título</th>
+            <th>Descripción</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for tarea in tareas %}
+        <tr>
+            <td>{{ tarea.id }}</td>
+            <td>{{ tarea.titulo }}</td>
+            <td>{{ tarea.descripcion or "-" }}</td>
+            <td class="actions-cell">
+                <a class="btn btn-secondary" href="{{ url_for('editar', id=tarea.id) }}">Editar</a>
+                <form action="{{ url_for('eliminar', id=tarea.id) }}" method="post">
+                    <button class="btn btn-danger" type="submit" onclick="return confirm('¿Eliminar esta tarea?')">
+                        Eliminar
+                    </button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p class="empty">No hay tareas todavía. Creá la primera.</p>
+{% endif %}
+{% endblock %}

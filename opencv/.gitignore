@@ -1,0 +1,35 @@
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Variables de entorno
+.env
+
+# Cache de Python
+__pycache__/
+*.py[cod]
+
+# Dataset
+datasets/
+
+# Entrenamientos YOLO
+runs/
+
+# Base model de YOLO (se descarga automaticamente)
+yolov8n.pt
+yolo11n.pt
+
+# Datasets grandes (se generan/descargan manualmente)
+modelo_crnn/datos_entrenamiento.pt
+
+# Resultados generados
+captures/
+outputs/
+
+# VS Code
+.vscode/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db

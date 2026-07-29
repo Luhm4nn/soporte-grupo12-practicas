@@ -1,0 +1,127 @@
+#:kivy 2.3.0
+#:import Clock kivy.clock.Clock
+#:import App kivy.app.App
+#:import Path pathlib.Path
+#:import re re
+#:import cv2 cv2
+#:import Texture kivy.graphics.texture.Texture
+
+CameraRoot:
+
+<CameraRoot@BoxLayout>:
+    id: camera
+    orientation: "vertical"
+    spacing: 10
+    padding: 10
+
+    cap: None
+    writer: None
+    texture: None
+    recording: False
+    countdown_active: False
+    frame_size: [640, 480]
+    fps: 30
+    last_frame: None
+
+    on_kv_post:
+        root.base_dir = Path(App.get_running_app().directory)
+        root.videos_dir = root.base_dir / "capturas" / "videos"
+        root.photos_dir = root.base_dir / "capturas" / "fotos"
+        ctx = {"root": root, "cv2": cv2, "re": re, "preview": preview, "Texture": Texture, "countdown_label": countdown_label, "status_label": status_label, "btn_photo": btn_photo, "btn_record": btn_record}
+        exec("def next_path(folder, prefix, ext):\n folder.mkdir(parents=True, exist_ok=True)\n pattern = re.compile('^' + re.escape(prefix) + r'_(\\d+)\\.' + re.escape(ext) + '$')\n max_index = 0\n\n for path in folder.iterdir():\n  m = pattern.match(path.name)\n  if m: max_index = max(max_index, int(m.group(1)))\n return folder / (prefix + '_' + f'{max_index + 1:03d}.' + ext)\ndef update_preview(dt):\n import cv2 as _cv2\n from kivy.graphics.texture import Texture as _Texture\n if root.cap is None or not root.cap.isOpened(): return False\n ok, frame = root.cap.read()\n if not ok: return True\n root.last_frame = frame.copy()\n root.writer.write(frame) if root.recording and root.writer is not None else None\n display = _cv2.flip(frame, 1)\n rgb = _cv2.cvtColor(display, _cv2.COLOR_BGR2RGB)\n h, w = rgb.shape[:2]\n root.texture = _Texture.create(size=(w, h), colorfmt='rgb') if root.texture is None or root.texture.size != (w, h) else root.texture\n preview.texture = root.texture\n root.texture.blit_buffer(rgb.tobytes(), colorfmt='rgb', bufferfmt='ubyte')\n return True\ndef save_photo():\n import cv2 as _cv2\n countdown_label.opacity = 0\n countdown_label.text = ''\n path = root.next_path(root.photos_dir, 'foto', 'jpg')\n frame = _cv2.flip(root.last_frame, 1)\n status_label.text = ('Foto guardada → ' + path.name) if _cv2.imwrite(str(path), frame) else 'Error al guardar la foto'\n root.countdown_active = False\n btn_photo.disabled = False\n btn_record.disabled = False", ctx)
+        root.next_path = ctx["next_path"]
+        root.update_preview = ctx["update_preview"]
+        root.save_photo = ctx["save_photo"]
+        root.cap = cv2.VideoCapture(0)
+        status_label.text = "No se pudo abrir la cámara" if not root.cap.isOpened() else "Cámara activa"
+        root.fps = (root.cap.get(cv2.CAP_PROP_FPS) or 30) if root.cap.isOpened() else 30
+        root.fps = 30 if root.fps <= 0 else root.fps
+        root.frame_size = [int(root.cap.get(cv2.CAP_PROP_FRAME_WIDTH) or 640), int(root.cap.get(cv2.CAP_PROP_FRAME_HEIGHT) or 480)] if root.cap.isOpened() else [640, 480]
+        Clock.schedule_interval(root.update_preview, 1.0 / root.fps) if root.cap.isOpened() else None
+
+    FloatLayout:
+        size_hint_y: 0.75
+
+        Image:
+            id: preview
+            allow_stretch: True
+            keep_ratio: True
+            size_hint: 1, 1
+            pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+        Label:
+            id: countdown_label
+            text: ""
+            font_size: "72sp"
+            bold: True
+            color: 1, 1, 1, 1
+            opacity: 0
+            size_hint: 1, 1
+            pos_hint: {"center_x": 0.5, "center_y": 0.5}
+            halign: "center"
+            valign: "middle"
+            text_size: self.size
+
+    Label:
+        id: status_label
+        text: "Listo"
+        size_hint_y: None
+        height: "28dp"
+        halign: "center"
+        text_size: self.width, None
+
+    BoxLayout:
+        size_hint_y: None
+        height: "48dp"
+        spacing: 10
+
+        Button:
+            id: btn_record
+            text: "Grabar"
+            background_color: 0.2, 0.7, 0.3, 1
+            on_press:
+                do_record = (not root.recording) and (root.cap is not None)
+                path = root.next_path(root.videos_dir, "video", "mp4") if do_record else None
+                w, h = root.frame_size
+                root.writer = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*"mp4v"), root.fps, (w, h)) if do_record else root.writer
+                ok_writer = root.writer.isOpened() if do_record and root.writer else False
+                status_label.text = "Error al iniciar la grabación" if do_record and not ok_writer else (f"Grabando → {path.name}" if ok_writer else status_label.text)
+                root.recording = ok_writer
+                btn_record.disabled = ok_writer
+                btn_stop.disabled = not ok_writer
+                btn_photo.disabled = ok_writer
+
+        Button:
+            id: btn_stop
+            text: "Stop"
+            background_color: 0.8, 0.2, 0.2, 1
+            disabled: True
+            on_press:
+                root.writer.release() if root.recording and root.writer is not None else None
+                root.writer = None if root.recording else root.writer
+                btn_record.disabled = False if root.recording else btn_record.disabled
+                btn_stop.disabled = True if root.recording else btn_stop.disabled
+                btn_photo.disabled = False if root.recording else btn_photo.disabled
+                status_label.text = "Video guardado" if root.recording else status_label.text
+                root.recording = False
+
+        Button:
+            id: btn_photo
+            text: "Foto (3s)"
+            background_color: 0.2, 0.4, 0.9, 1
+            on_press:
+                do_photo = (not root.countdown_active) and (not root.recording) and (root.last_frame is not None)
+                root.countdown_active = True if do_photo else root.countdown_active
+                btn_photo.disabled = True if do_photo else btn_photo.disabled
+                btn_record.disabled = True if do_photo else btn_record.disabled
+                countdown_label.text = "3" if do_photo else countdown_label.text
+                countdown_label.opacity = 1 if do_photo else countdown_label.opacity
+                Clock.schedule_once(lambda dt: setattr(countdown_label, "text", "2"), 1) if do_photo else None
+                Clock.schedule_once(lambda dt: setattr(countdown_label, "text", "1"), 2) if do_photo else None
+                Clock.schedule_once(lambda dt: root.save_photo(), 3) if do_photo else None
+
+<CameraApp>:
+    on_stop:
+        Clock.unschedule(root.update_preview) if root and hasattr(root, "update_preview") else None
+        root.writer.release() if root and root.writer is not None else None
+        root.cap.release() if root and root.cap is not None else None

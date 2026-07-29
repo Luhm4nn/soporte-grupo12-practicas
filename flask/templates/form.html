@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}{{ accion }}{% endblock %}
+
+{% block content %}
+<section class="form-card">
+    <h2>{{ accion }}</h2>
+
+    <form method="post">
+        <label for="titulo">Título</label>
+        <input
+            type="text"
+            id="titulo"
+            name="titulo"
+            value="{{ tarea.titulo if tarea else '' }}"
+            required
+            maxlength="100"
+            autofocus
+        >
+
+        <label for="descripcion">Descripción</label>
+        <textarea id="descripcion" name="descripcion" rows="4">{{ tarea.descripcion if tarea and tarea.descripcion else '' }}</textarea>
+
+        <div class="form-actions">
+            <button class="btn btn-primary" type="submit">Guardar</button>
+            <a class="btn btn-secondary" href="{{ url_for('index') }}">Cancelar</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

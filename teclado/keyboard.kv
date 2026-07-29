@@ -1,0 +1,46 @@
+BoxLayout:
+    orientation: "vertical"
+    spacing: 10
+    padding: 10
+
+    Label:
+        text: "Escribi usando VKeyboard"
+        size_hint_y: None
+        height: "32dp"
+
+    BoxLayout:
+        size_hint_y: None
+        height: "40dp"
+        spacing: 10
+
+    TextInput:
+        id: text_field
+        multiline: True
+        font_size: "24sp"
+        hint_text: "Escribi con el teclado virtual"
+        size_hint_x: 1
+        size_hint_y: 1
+
+    VKeyboard:
+        id: vk
+        layout: "qwerty.json"
+        size_hint_x: 1
+        size_hint_y: 1
+        on_textinput: text_field.insert_text(args[1])
+        on_key_down: (setattr(text_field, "text", "")) if args[1][1] == "backspace" else (text_field.insert_text("\n")) if args[1][1] in ("enter", "numpadenter") else None if len(args[1]) > 1 else None
+
+    Button:
+        text: "Enter"
+        size_hint_y: 0.3
+        on_press: text_field.insert_text("\n")
+
+    Button:
+        text: "Borrar"
+        size_hint_y: 0.3
+        on_press: setattr(text_field, "text", "")
+
+    Label:
+        text: "Longitud: " + str(len(text_field.text))
+        size_hint_y: None
+        height: "40dp"
+        disabled: True
