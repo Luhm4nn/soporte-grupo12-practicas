@@ -26,7 +26,11 @@ class Audio(Base):
     duration: Mapped[float | None] = mapped_column(Float, nullable=True)
     file_size: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     language: Mapped[str | None] = mapped_column(String(10), nullable=True)
-    status: Mapped[str] = mapped_column(SAEnum(AudioStatus), default=AudioStatus.PENDING, nullable=False)
+    status: Mapped[str] = mapped_column(
+        SAEnum(AudioStatus, values_callable=lambda e: [m.value for m in e]),
+        default=AudioStatus.PENDING,
+        nullable=False,
+    )
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     transcription_text: Mapped[str | None] = mapped_column(Text, nullable=True)

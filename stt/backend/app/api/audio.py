@@ -49,7 +49,7 @@ from app.workers.rq_worker import redis_conn
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-task_queue = Queue("default", connection=redis_conn)
+task_queue = Queue("default", connection=redis_conn, default_timeout=3600)
 
 
 ALLOWED_EXTENSIONS = {"mp3", "wav", "m4a", "ogg", "opus", "aac", "webm"}
